@@ -1,0 +1,244 @@
+body {
+    background: #f1f5f9;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Fix admin content area */
+.admin-content {
+    padding: 20px;
+}
+
+/* Ensure cards visible */
+.prof-card {
+    background: #ffffff !important;
+    padding: 20px !important;
+    border-radius: 12px !important;
+}
+
+
+
+
+/* =========================
+   Global Reset
+   ========================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f1f5f9;
+    min-height: 100vh;
+    padding: 40px 20px;
+}
+
+/* =========================
+   Container
+   ========================= */
+
+.container,
+.upload-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+}
+
+.container h2 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 24px;
+    text-align: center;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #2563eb;
+}
+
+/* =========================
+   Alerts
+   ========================= */
+
+.success {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border-left: 4px solid #10b981;
+}
+
+.error {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #991b1b;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border-left: 4px solid #ef4444;
+}
+
+/* =========================
+   Form
+   ========================= */
+
+form {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+input[type="file"] {
+    padding: 12px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 400px;
+    background: #f8fafc;
+    cursor: pointer;
+}
+
+button[type="submit"] {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* =========================
+   Table
+   ========================= */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 40px;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+table thead {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: white;
+}
+
+table th,
+table td {
+    padding: 12px;
+    text-align: center;
+}
+
+/* =========================
+   Status
+   ========================= */
+
+.status-sent {
+    background: #d1fae5;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.status-pending {
+    background: #fef3c7;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+/* =========================
+   Action Buttons
+   ========================= */
+
+.action-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.delete-btn {
+    background: red;
+    color: white;
+}
+
+/* =========================
+   NAVBAR USER (Avatar)
+   ========================= */
+
+.admin-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 18px;
+    background: #ffffff;
+    border-radius: 50px;
+    border: 1px solid #e2e8f0;
+}
+
+.user-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* =========================
+   PROFILE PAGE
+   ========================= */
+
+.prof-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 24px;
+}
+
+.prof-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.prof-avatar-ring {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: auto;
+    font-size: 28px;
+    color: white;
+}
+
+/* =========================
+   Responsive
+   ========================= */
+
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    table {
+        font-size: 11px;
+    }
+    
+}
