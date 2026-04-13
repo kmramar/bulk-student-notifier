@@ -27,7 +27,8 @@ A Laravel-based Admin Panel to manage students and send bulk notifications via E
 
 ##  Screenshots
 
-(Add screenshots here later)
+(<img width="1440" height="811" alt="Screenshot 2026-04-14 at 2 47 58 AM" src="https://github.com/user-attachments/assets/96ac74a7-9d41-4679-862d-8e1075fb9504" />
+)
 
 ---
 
