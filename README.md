@@ -1,10 +1,10 @@
-# 🚀 Bulk Student Notification System
+#  Bulk Student Notification System
 
 A Laravel-based Admin Panel to manage students and send bulk notifications via Email and SMS.
 
 ---
 
-## ✨ Features
+##  Features
 
 - 📥 CSV Upload (Bulk Student Import)
 - 📧 Bulk Email Sending
@@ -16,7 +16,7 @@ A Laravel-based Admin Panel to manage students and send bulk notifications via E
 
 ---
 
-## 🧰 Tech Stack
+##  Tech Stack
 
 - Laravel (PHP)
 - MySQL
@@ -25,13 +25,13 @@ A Laravel-based Admin Panel to manage students and send bulk notifications via E
 
 ---
 
-## 📸 Screenshots
+##  Screenshots
 
 (Add screenshots here later)
 
 ---
 
-## ⚙️ Installation
+##  Installation
 
 ```bash
 git clone https://github.com/kmramar/bulk-student-notifier.git
