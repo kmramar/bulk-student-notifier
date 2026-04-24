@@ -3,6 +3,8 @@
 use App\Http\Controllers\StudentController;
 use Illuminate\Support\Facades\Route;
 use App\Models\Student;
+use App\Http\Controllers\Admin\NotificationTemplateController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -114,6 +116,13 @@ Route::get('/admin/reports', function () {
         ->count();
 
     return view('admin.reports.index', compact('totalStudents', 'emailSent', 'smsSent', 'noReply'));
+
+
+    //tamplate////
+    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::resource('templates', NotificationTemplateController::class);
+    });
+
 
     
 });

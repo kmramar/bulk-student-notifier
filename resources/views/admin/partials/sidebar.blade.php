@@ -49,6 +49,13 @@
                 <span>Bulk SMS</span>
             </a>
         </li>
+        
+         <!-- Templates -->
+        <li>
+            <a href="/admin/templates" class="{{ request()->is('admin/templates') || request()->is('admin/templates/*') ? 'active-menu' : '' }}">
+                <i class="fas fa-file-alt"></i>
+                <span>Templates</span>
+            </a>
 
         <!-- Reports -->
         <li>
