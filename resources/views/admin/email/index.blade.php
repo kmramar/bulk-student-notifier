@@ -1,7 +1,4 @@
-@extends('admin.layouts.master')
-
-@section('title', 'Bulk Email')
-@section('page_title', 'Bulk Email')
+@extends('admin.layouts.app')
 
 @section('content')
 
@@ -37,7 +34,7 @@
     </div>
 </div>
 
-<div class="card mb-24">
+<div class="card mb-4">
     <div class="card-header">
         <h5 class="mb-0">
             <i class="fas fa-paper-plane me-2"></i>Bulk Email Actions
@@ -45,23 +42,39 @@
     </div>
     <div class="card-body">
         <p class="text-muted mb-4">
-            Send notification email to all available students from one place.
+            Select a template and send notification email to all students.
         </p>
 
-        <div class="d-flex flex-wrap gap-2">
-            <form action="/admin/students/send-email-all" method="POST" class="d-inline">
-                @csrf
-                <button type="submit" class="btn btn-success" onclick="return confirm('Send email to all students?')">
-                    <i class="fas fa-envelope me-2"></i>Send Email to All
-                </button>
-            </form>
+        <form action="/admin/students/send-email-all" method="POST" class="d-inline">
+            @csrf
+            
+            <div class="row g-3 mb-3">
+                <div class="col-md-8">
+                    <label class="form-label">Select Email Template (Optional)</label>
+                    <select name="template_id" class="form-select">
+                        <option value="">-- No Template (Default Message) --</option>
+                        @foreach($templates ?? [] as $template)
+                            <option value="{{ $template->id }}">
+                                {{ $template->title }} ({{ ucfirst($template->type) }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="text-muted">If no template selected, default message will be sent.</small>
+                </div>
+            </div>
 
+            <button type="submit" class="btn btn-success" onclick="return confirm('Send email to all students?')">
+                <i class="fas fa-envelope me-2"></i>Send Email to All
+            </button>
+        </form>
+
+        <div class="d-flex flex-wrap gap-2 mt-3">
             <a href="/admin/students" class="btn btn-primary">
                 <i class="fas fa-users me-2"></i>Manage Students
             </a>
 
             <a href="/" class="btn btn-secondary">
-                <i class="fas fa-upload me-2"></i>Upload CSV
+                <i class="fas fa-upload me-2"></i>Upload CSV / Excel
             </a>
         </div>
     </div>

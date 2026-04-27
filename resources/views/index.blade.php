@@ -21,13 +21,15 @@
             </div>
         @endif
 
-        <form action="/upload" method="POST" enctype="multipart/form-data">
-            @csrf
-            <input type="file" name="file" accept=".csv" required>
-            
-            <button type="submit">Upload & Process</button>
-        </form>
+       <form action="{{ route('csv.upload') }}" method="POST" enctype="multipart/form-data">
+    @csrf
 
+    <input type="file" name="csv" accept=".csv" required>
+
+    <button type="submit">
+        Upload & Process
+    </button>
+</form>
         <p class="note">Accepted format: .csv only</p>
 
         @if(isset($students) && $students->count() > 0)

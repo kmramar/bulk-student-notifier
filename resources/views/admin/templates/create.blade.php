@@ -14,22 +14,31 @@
             <form method="POST" action="{{ route('admin.templates.store') }}">
                 @csrf
 
+                <!-- Title -->
+                <div class="mb-3">
+                    <label class="form-label">Template Title</label>
+                    <input type="text" name="title" placeholder="Example: Admission Email"
+                        class="form-control" required>
+                </div>
+
                 <!-- Subject -->
                 <div class="mb-3">
                     <label class="form-label">Subject</label>
                     <input type="text" name="subject" placeholder="Enter subject"
-                        class="form-control">
+                        class="form-control" required>
                 </div>
 
                 <!-- Message -->
                 <div class="mb-3">
                     <label class="form-label">Message (HTML allowed)</label>
-                    <textarea name="body" rows="6"
-                        class="form-control"
-                        placeholder="Write your template here..."></textarea>
-
+                    <textarea name="message" rows="6"
+                   class="form-control"
+                      placeholder="Write your template here..." required></textarea>
+                    
                     <small class="text-muted">
-                        Use variables: {name}, {email}, {course}, {roll_number}
+                        💡 Tip: Use dynamic placeholders like 
+                        <b>{name}</b>, <b>{email}</b>, <b>{course}</b>, <b>{roll_number}</b> 
+                        to personalize messages automatically.
                     </small>
                 </div>
 

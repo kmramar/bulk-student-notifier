@@ -1,10 +1,10 @@
 <?php
 
-use App\Http\Controllers\StudentController;
 use Illuminate\Support\Facades\Route;
 use App\Models\Student;
+use App\Http\Controllers\StudentController;
 use App\Http\Controllers\Admin\NotificationTemplateController;
-
+use App\Http\Controllers\Admin\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,17 +12,12 @@ use App\Http\Controllers\Admin\NotificationTemplateController;
 |--------------------------------------------------------------------------
 */
 
-// Home page - upload form and current student table
-Route::get('/', [StudentController::class, 'index']);
+Route::get('/', [StudentController::class, 'index'])->name('home');
+Route::post('/upload', [StudentController::class, 'upload'])->name('csv.upload');
 
-// Upload CSV file
-Route::post('/upload', [StudentController::class, 'upload']);
+Route::delete('/student/{id}', [StudentController::class, 'destroy'])->name('student.destroy');
+Route::post('/student/{id}/update-status', [StudentController::class, 'updateStatus'])->name('student.updateStatus');
 
-// Delete student
-Route::delete('/student/{id}', [StudentController::class, 'destroy']);
-
-// Update student status from detail page
-Route::post('/student/{id}/update-status', [StudentController::class, 'updateStatus']);
 
 /*
 |--------------------------------------------------------------------------
@@ -30,14 +25,10 @@ Route::post('/student/{id}/update-status', [StudentController::class, 'updateSta
 |--------------------------------------------------------------------------
 */
 
-// Show admin login page
 Route::get('/admin/login', [StudentController::class, 'showAdminLogin'])->name('admin.login');
-
-// Check admin login form
-Route::post('/admin/login', [StudentController::class, 'adminLogin']);
-
-// Logout admin
+Route::post('/admin/login', [StudentController::class, 'adminLogin'])->name('admin.login.post');
 Route::get('/admin/logout', [StudentController::class, 'adminLogout'])->name('admin.logout');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -45,84 +36,162 @@ Route::get('/admin/logout', [StudentController::class, 'adminLogout'])->name('ad
 |--------------------------------------------------------------------------
 */
 
-// Admin dashboard page
-Route::get('/admin/dashboard', [StudentController::class, 'adminDashboard']);
+Route::prefix('admin')->name('admin.')->group(function () {
 
-// Admin students list page
-Route::get('/admin/students', [StudentController::class, 'adminStudents']);
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/dashboard', [StudentController::class, 'adminDashboard'])->name('dashboard');
 
-// Admin single student details page
-Route::get('/admin/students/{id}', [StudentController::class, 'adminStudentShow']);
+    /*
+    |--------------------------------------------------------------------------
+    | Students
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/students', [StudentController::class, 'adminStudents'])->name('students.index');
+    Route::get('/students/{id}/edit', [StudentController::class, 'edit'])->name('students.edit');
+    Route::post('/students/{id}/update', [StudentController::class, 'update'])->name('students.update');
+    Route::get('/students/{id}', [StudentController::class, 'adminStudentShow'])->name('students.show');
 
-// Admin profile page
-Route::get('/admin/profile', [StudentController::class, 'adminProfile']);
+    /*
+    |--------------------------------------------------------------------------
+    | Profile
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/profile', [StudentController::class, 'adminProfile'])->name('profile');
 
-// Show forgot password page
-Route::get('/admin/forgot-password', [StudentController::class, 'showForgotPassword'])->name('admin.forgot.password');
+    /*
+    |--------------------------------------------------------------------------
+    | CSV Upload (Simple)
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/upload', function () {
+        return view('admin.csv.upload');
+    })->name('upload');
 
-// Handle forgot password form submit
-Route::post('/admin/forgot-password', [StudentController::class, 'forgotPassword']);
+    /*
+    |--------------------------------------------------------------------------
+    | Password / OTP System
+    |--------------------------------------------------------------------------
+    */
 
-// Update admin password from profile page
-Route::post('/admin/profile/update-password', [StudentController::class, 'updateAdminPassword']);
+    // Step 1: Forgot page
+    Route::get('/forgot-password', [StudentController::class, 'showForgotPassword'])
+        ->name('forgot.password');
 
-// Send real email to a single student
-Route::post('/admin/students/{id}/send-email', [StudentController::class, 'sendStudentEmail']);
+    // Step 2: Send OTP
+    Route::post('/send-otp', [AuthController::class, 'sendOtp'])
+        ->name('send.otp');
 
-// Send real SMS to a single student
-Route::post('/admin/students/{id}/send-sms', [StudentController::class, 'sendStudentSms']);
+    // Step 3: Verify OTP
+    Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])
+        ->name('verify.otp');
 
-// Send real SMS to all students
-Route::post('/admin/students/send-sms-all', [StudentController::class, 'bulkSendSms']);
+    // Step 4: Reset password
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+        ->name('reset.password');
 
-// Send real email to all students
-Route::post('/admin/students/send-email-all', [StudentController::class, 'bulkSendEmail']);
+    /*
+    |--------------------------------------------------------------------------
+    | Email / SMS
+    |--------------------------------------------------------------------------
+    */
+    Route::post('/students/{id}/send-email', [StudentController::class, 'sendStudentEmail'])->name('students.sendEmail');
+    Route::post('/students/{id}/send-sms', [StudentController::class, 'sendStudentSms'])->name('students.sendSms');
+    Route::post('/students/send-sms-all', [StudentController::class, 'bulkSendSms'])->name('students.bulkSms');
+    Route::post('/students/send-email-all', [StudentController::class, 'bulkSendEmail'])->name('students.bulkEmail');
 
-Route::get('/admin/students/{id}/edit', [StudentController::class, 'edit']);
+    /*
+    |--------------------------------------------------------------------------
+    | Pages
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/email', function () {
+        $totalStudents = Student::count();
+        $emailSent = Student::where('email_status', 1)->count();
 
-Route::post('/admin/students/{id}/update', [StudentController::class, 'update']);
-
-// Admin email page
-Route::get('/admin/email', function () {
-    $totalStudents = Student::count();
-    $emailSent = Student::where('email_status', 1)->count();
-    $pendingEmails = Student::where(function ($query) {
-        $query->whereNull('email_status')
-              ->orWhere('email_status', 0);
-    })->count();
-
-    return view('admin.email.index', compact('totalStudents', 'emailSent', 'pendingEmails'));
-});
-
-// Admin SMS page
-Route::get('/admin/sms', function () {
-    $totalStudents = Student::count();
-    $smsSent = Student::where('sms_status', 1)->count();
-    $pendingSms = Student::where(function ($query) {
-        $query->whereNull('sms_status')
-              ->orWhere('sms_status', 0);
-    })->count();
-
-    return view('admin.sms.index', compact('totalStudents', 'smsSent', 'pendingSms'));
-});
-
-// Admin reports page
-Route::get('/admin/reports', function () {
-    $totalStudents = Student::count();
-    $emailSent = Student::where('email_status', 1)->count();
-    $smsSent = Student::where('sms_status', 1)->count();
-    $noReply = Student::whereNull('response')
-        ->orWhere('response', '')
-        ->count();
-
-    return view('admin.reports.index', compact('totalStudents', 'emailSent', 'smsSent', 'noReply'));
+        $pendingEmails = Student::where(function ($query) {
+            $query->whereNull('email_status')
+                ->orWhere('email_status', 0);
+        })->count();
 
 
-    //tamplate////
-    Route::prefix('admin')->name('admin.')->group(function () {
+        $templates = \App\Models\NotificationTemplate::where('type', 'email')->get();
+
+        return view('admin.email.index', compact(
+            'totalStudents',
+            'emailSent',
+            'pendingEmails',
+            'templates'
+        ));
+    })->name('email');
+
+    Route::get('/sms', function () {
+        $totalStudents = Student::count();
+        $smsSent = Student::where('sms_status', 1)->count();
+
+        $pendingSms = Student::where(function ($query) {
+            $query->whereNull('sms_status')
+                ->orWhere('sms_status', 0);
+        })->count();
+
+        $templates = \App\Models\NotificationTemplate::where('type', 'sms')->get();
+
+        return view('admin.sms.index', compact(
+            'totalStudents',
+            'smsSent',
+            'pendingSms',
+            'templates'
+        ));
+    })->name('sms');
+
+    Route::get('/reports', function () {
+        $totalStudents = Student::count();
+        $emailSent = Student::where('email_status', 1)->count();
+        $smsSent = Student::where('sms_status', 1)->count();
+
+        $noReply = Student::whereNull('response')
+            ->orWhere('response', '')
+            ->count();
+
+        return view('admin.reports.index', compact(
+            'totalStudents',
+            'emailSent',
+            'smsSent',
+            'noReply'
+        ));
+    })->name('reports');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Templates
+    |--------------------------------------------------------------------------
+    */
     Route::resource('templates', NotificationTemplateController::class);
-    });
+
+    Route::post('/templates/{id}/send-test', [NotificationTemplateController::class, 'sendTest'])
+        ->name('templates.sendTest');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Failed Notifications
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/failed-notifications', [StudentController::class, 'failedNotifications'])
+        ->name('failed.notifications');
 
 
+        Route::get('/admin/profile', function () {
+    return view('admin.profile.index');
+})->name('admin.profile');
+
+Route::get('/admin/settings', function () {
+    return view('admin.settings.index');
+})->name('admin.settings');
+
+Route::get('/admin/logout', [StudentController::class, 'adminLogout'])
+    ->name('admin.logout');
     
 });

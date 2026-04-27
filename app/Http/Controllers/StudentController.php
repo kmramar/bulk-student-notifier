@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Student;
 use App\Models\Admin;
+use App\Models\NotificationTemplate;
 use Illuminate\Support\Facades\Hash;
 use App\Mail\StudentNotificationMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Twilio\Rest\Client;
 
 class StudentController extends Controller
@@ -24,41 +27,122 @@ class StudentController extends Controller
         $students = Student::latest()->get();
         return view('index', compact('students'));
     }
+
+    //admin profile page
+    
     
 
-    // Upload CSV file and save only new students
-    public function upload(Request $request)
-    {
-        // Validate uploaded CSV file
-        $request->validate([
-            'file' => 'required|mimes:csv,txt'
+    // Upload CSV file
+// If uploaded from admin mapping page => go to mapping
+// If uploaded from simple upload page => save directly
+public function upload(Request $request)
+{
+    if (!$request->hasFile('csv')) {
+        return back()->with('error', 'CSV file not received. Check input name="csv" and enctype.');
+    }
+
+    $request->validate([
+        'csv' => 'required|file|mimes:csv,txt|max:2048',
+        'upload_type' => 'nullable|string',
+    ]);
+
+    $file = $request->file('csv');
+
+    /*
+    |----------------------------------
+    |--------------------------------------------------------------------------
+    | Simple Upload Direct Save
+    |--------------------------------------------------------------------------
+    */
+    $rows = array_map('str_getcsv', file($file->getRealPath()));
+
+    // Remove header row
+    array_shift($rows);
+
+    $savedCount = 0;
+    $duplicateCount = 0;
+    $skippedCount = 0;
+
+    foreach ($rows as $row) {
+        $email = trim($row[1] ?? '');
+
+        if (empty($email)) {
+            $skippedCount++;
+            continue;
+        }
+
+        if (Student::where('email', $email)->exists()) {
+            $duplicateCount++;
+            continue;
+        }
+
+        Student::create([
+            'name' => trim($row[0] ?? ''),
+            'email' => $email,
+            'phone' => trim($row[2] ?? ''),
+            'course' => trim($row[3] ?? ''),
+            'message' => trim($row[4] ?? ''),
+            'email_status' => 0,
+            'sms_status' => 0,
+            'response' => null,
         ]);
 
-        // Get uploaded file
-        $file = $request->file('file');
+        $savedCount++;
+    }
 
-        // Get file path
-        $path = $file->getRealPath();
+    return redirect('/')
+        ->with(
+            'success',
+            "Upload completed. New students saved: {$savedCount}, Duplicates skipped: {$duplicateCount}, Invalid rows skipped: {$skippedCount}"
+        );
+}
+    // Process CSV with column mapping
+    public function processCsvMapping(Request $request)
+    {
+        // Protect admin page
+        if (!session('admin_logged_in')) {
+            return redirect('/admin/login')->with('error', 'Please login first');
+        }
 
-        // Convert CSV into array
-        $rows = array_map('str_getcsv', file($path));
+        // Get mapping from request
+        $mapping = $request->input('mapping', []);
+        
+        // Get temp file path from session
+        $tempPath = session('csv_temp_file');
+        
+        if (!$tempPath || !file_exists(Storage::path($tempPath))) {
+            return redirect('/')->with('error', 'CSV file not found. Please upload again.');
+        }
 
-        // Remove header row
+        // Read CSV file
+        $rows = array_map('str_getcsv', file(Storage::path($tempPath)));
+
+        // First row contains headers (already processed in upload)
         unset($rows[0]);
 
         // Counters for result message
         $savedCount = 0;
         $duplicateCount = 0;
 
-        // Save CSV rows into database
+        // Available columns in students table (no 'role' column exists)
+        $availableColumns = ['name', 'email', 'phone', 'course', 'message'];
+
+        // Save CSV rows into database using mapping
         foreach ($rows as $row) {
-            $name = $row[0] ?? null;
-            $email = trim($row[1] ?? '');
-            $phone = $row[2] ?? null;
-            $course = $row[3] ?? null;
-            $message = $row[4] ?? null;
+            $data = [];
+
+            // Map CSV columns to database fields based on mapping
+            foreach ($mapping as $csvIndex => $dbField) {
+                if (empty($dbField) || !in_array($dbField, $availableColumns)) {
+                    continue; // Skip unmapped or invalid fields
+                }
+
+                $csvIndex = (int) $csvIndex;
+                $data[$dbField] = $row[$csvIndex] ?? null;
+            }
 
             // Skip row if email is empty
+            $email = trim($data['email'] ?? '');
             if (empty($email)) {
                 continue;
             }
@@ -70,11 +154,11 @@ class StudentController extends Controller
                 $duplicateCount++;
             } else {
                 Student::create([
-                    'name' => $name,
+                    'name' => $data['name'] ?? null,
                     'email' => $email,
-                    'phone' => $phone,
-                    'course' => $course,
-                    'message' => $message,
+                    'phone' => $data['phone'] ?? null,
+                    'course' => $data['course'] ?? null,
+                    'message' => $data['message'] ?? null,
                     'email_status' => 0,
                     'sms_status' => 0,
                     'response' => null,
@@ -83,6 +167,10 @@ class StudentController extends Controller
                 $savedCount++;
             }
         }
+
+        // Clean up temp file and session
+        Storage::delete($tempPath);
+        session()->forget(['csv_temp_file', 'csv_headers']);
 
         return redirect('/')->with(
             'success',
@@ -181,14 +269,15 @@ class StudentController extends Controller
         return view('admin.auth.forgot-password');
     }
 
-    // Handle forgot password form submit and update password in database
+    // Handle forgot password: send OTP first, then verify to reset password
     public function forgotPassword(Request $request)
     {
         // Validate form fields
         $request->validate([
             'email' => 'required|email',
             'new_password' => 'required|min:6',
-            'confirm_password' => 'required|same:new_password'
+            'confirm_password' => 'required|same:new_password',
+            'otp' => 'nullable|numeric|digits:6'
         ]);
 
         // Find admin by email
@@ -199,10 +288,53 @@ class StudentController extends Controller
             return back()->with('error', 'Admin email not found');
         }
 
-        // Update hashed password in database
+        // If OTP not submitted, generate and send OTP
+        if (!$request->filled('otp')) {
+            $otp = rand(100000, 999999);
+            
+            // Store OTP in session (valid 10 minutes)
+            session([
+                'otp' => $otp,
+                'otp_email' => $admin->email,
+                'otp_expiry' => now()->addMinutes(10)
+            ]);
+
+            // Send OTP email immediately (no queue)
+            try {
+                Mail::send([], [], function ($message) use ($admin, $otp) {
+                    $message->to($admin->email)
+                            ->subject('Password Reset OTP')
+                            ->setBody("Your OTP for password reset is: $otp. Valid for 10 minutes.");
+                });
+                Log::info("OTP sent to {$admin->email}: $otp");
+            } catch (\Exception $e) {
+                Log::error("OTP send failed to {$admin->email}: " . $e->getMessage());
+                return back()->with('error', 'Failed to send OTP. Please try again.');
+            }
+
+            return back()->with('success', 'OTP sent to your email. Enter it below to reset password.');
+        }
+
+        // Verify submitted OTP
+        $sessionOtp = session('otp');
+        $sessionEmail = session('otp_email');
+        $otpExpiry = session('otp_expiry');
+
+        if (!$sessionOtp || $sessionEmail !== $admin->email || now()->gt($otpExpiry)) {
+            return back()->with('error', 'Invalid or expired OTP. Request a new one.');
+        }
+
+        if ($request->otp != $sessionOtp) {
+            return back()->with('error', 'Incorrect OTP.');
+        }
+
+        // OTP verified: update password
         $admin->update([
             'password' => bcrypt($request->new_password)
         ]);
+
+        // Clear OTP session data
+        session()->forget(['otp', 'otp_email', 'otp_expiry']);
 
         return redirect('/admin/login')->with('success', 'Password updated successfully. Please login with your new password.');
     }
@@ -340,6 +472,39 @@ class StudentController extends Controller
 
     /*
     |--------------------------------------------------------------------------
+    | Helper Methods
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Replace placeholders in content with student data.
+     * Supported placeholders: {name}, {email}, {phone}, {course}, {roll_number}, {message}
+     * If a value is missing, replaces with empty string.
+     *
+     * @param string $content The content with placeholders
+     * @param Student $student The student object
+     * @return string Content with placeholders replaced
+     */
+    private function replacePlaceholders($content, $student)
+    {
+        if (empty($content)) {
+            return $content;
+        }
+
+        $placeholders = [
+            '{name}' => $student->name ?? '',
+            '{email}' => $student->email ?? '',
+            '{phone}' => $student->phone ?? '',
+            '{course}' => $student->course ?? '',
+            '{roll_number}' => $student->roll_number ?? '',
+            '{message}' => $student->message ?? '',
+        ];
+
+        return str_replace(array_keys($placeholders), array_values($placeholders), $content);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Email and SMS Features
     |--------------------------------------------------------------------------
     */
@@ -419,53 +584,67 @@ class StudentController extends Controller
         }
     }
 
-    // Send real email to all students and update email status
-    public function bulkSendEmail()
+    // Bulk send email to multiple students
+    public function bulkSendEmail(Request $request)
     {
-        // Protect admin page
-        if (!session('admin_logged_in')) {
-            return redirect('/admin/login')->with('error', 'Please login first');
-        }
+        $request->validate([
+            'template_id' => 'nullable|exists:notification_templates,id',
+            'subject' => 'nullable|string|max:255',
+            'message' => 'nullable|string',
+    ]);
 
-        // Get all students
-        $students = Student::all();
+    $successCount = 0;
+    $failCount = 0;
 
-        // Counters for final result
-        $successCount = 0;
-        $failCount = 0;
+    $template = null;
 
-        // Loop through all students
-        foreach ($students as $student) {
-            if (empty($student->email)) {
-                $student->update([
-                    'email_status' => 0
-                ]);
-                $failCount++;
-                continue;
-            }
-
-            try {
-                Mail::to($student->email)->send(new StudentNotificationMail($student));
-
-                $student->update([
-                    'email_status' => 1
-                ]);
-
-                $successCount++;
-            } catch (\Exception $e) {
-                $student->update([
-                    'email_status' => 0
-                ]);
-
-                $failCount++;
-            }
-        }
-
-        return redirect('/admin/students')->with(
-            'success',
-            'Bulk email completed. Sent: ' . $successCount . ', Failed: ' . $failCount
-        );
+    if ($request->filled('template_id')) {
+        $template = NotificationTemplate::find($request->template_id);
     }
+
+    $students = Student::whereNotNull('email')
+        ->where('email', '!=', '')
+        ->get();
+
+    foreach ($students as $student) {
+        try {
+            if ($template) {
+                $subject = $this->replacePlaceholders($template->subject, $student);
+                $body = $this->replacePlaceholders($template->message, $student);
+            } else {
+                $subject = $request->subject ?? 'Student Notification';
+                $body = $request->message ?? 'Hello ' . $student->name;
+            }
+
+            Mail::to($student->email)->send(
+                new StudentNotificationMail($student, $subject, $body)
+            );
+
+            $student->update([
+                'email_status' => 1,
+                'notification_status' => 'sent',
+                'notification_error' => null,
+                'notification_sent_at' => now(),
+            ]);
+
+            $successCount++;
+        } catch (\Exception $e) {
+            $student->update([
+                'email_status' => 0,
+                'notification_status' => 'failed',
+                'notification_error' => $e->getMessage(),
+                'notification_sent_at' => null,
+            ]);
+
+            $failCount++;
+        }
+    }
+
+    return redirect('/admin/students')->with(
+        'success',
+        'Bulk email completed. Sent: ' . $successCount . ', Failed: ' . $failCount
+    );
+}
 
     // Send real SMS to a single student
     public function sendStudentSms($id)
@@ -521,11 +700,20 @@ class StudentController extends Controller
     }
 
     // Send real SMS to all students and update sms status
-    public function bulkSendSms()
+    // Supports template selection: uses template message if template_id provided
+    public function bulkSendSms(Request $request)
     {
         // Protect admin page
         if (!session('admin_logged_in')) {
             return redirect('/admin/login')->with('error', 'Please login first');
+        }
+
+        // Get template if selected
+        $template = null;
+        if ($request->filled('template_id')) {
+            $template = NotificationTemplate::where('id', $request->template_id)
+                ->where('type', 'sms')
+                ->first();
         }
 
         // Get all students
@@ -557,11 +745,20 @@ class StudentController extends Controller
             }
 
             try {
+                // Use template if available, otherwise fallback to default message
+                if ($template) {
+                    // Replace placeholders and ensure plain text for SMS
+                    $smsBody = strip_tags($this->replacePlaceholders($template->message, $student));
+                } else {
+                    // Fallback to old behavior
+                    $smsBody = 'Hello ' . $student->name . ', Course: ' . $student->course . ', Message: ' . ($student->message ?? '');
+                }
+
                 $twilio->messages->create(
                     $phone,
                     [
                         'from' => env('TWILIO_PHONE_NUMBER'),
-                        'body' => 'Hello ' . $student->name . ', Course: ' . $student->course . ', Message: ' . $student->message
+                        'body' => $smsBody
                     ]
                 );
 
@@ -603,6 +800,16 @@ public function update(Request $request, $id)
     ]);
 
     return redirect('/admin/students')->with('success', 'Student updated successfully');
+}
+public function failedNotifications()
+{
+    $students = Student::where('email_status', 0)
+        ->orWhere('sms_status', 0)
+        ->orWhereNotNull('notification_error')
+        ->latest()
+        ->get();
+
+    return view('admin.failed-notifications.index', compact('students'));
 }
 
 }

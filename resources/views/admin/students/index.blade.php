@@ -5,7 +5,7 @@
 
 @section('content')
 
-<!-- Statistics Cards -->
+<!-- Statistics Cards: Shows overall counts on top of the page -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6">
         <div class="stat-card">
@@ -48,10 +48,11 @@
     </div>
 </div>
 
-<!-- Action Bar -->
+<!-- Action Bar: Buttons for sending bulk email, SMS, and CSV upload -->
 <div class="action-bar mb-3">
     <div class="d-flex align-items-center gap-2 flex-wrap">
 
+        <!-- Bulk Email Button -->
         <form action="/admin/students/send-email-all" method="POST" class="d-inline">
             @csrf
             <button type="submit" class="btn btn-success"
@@ -60,6 +61,7 @@
             </button>
         </form>
 
+        <!-- Bulk SMS Button -->
         <form action="/admin/students/send-sms-all" method="POST" class="d-inline">
             @csrf
             <button type="submit" class="btn btn-warning text-white"
@@ -68,16 +70,18 @@
             </button>
         </form>
 
+        <!-- CSV Upload Button -->
         <a href="/" class="btn btn-primary">
             <i class="fas fa-upload me-2"></i>Upload CSV
         </a>
     </div>
 
-    <!-- Search -->
+    <!-- Search Box: Search students by name, email, or course -->
     <div class="search-box mt-2">
         <form action="/admin/students" method="GET" class="d-flex gap-2">
             <input type="text" name="search" value="{{ $search ?? '' }}"
                 class="form-control" placeholder="Search name, email or course">
+
             <button type="submit" class="btn btn-primary btn-sm">Search</button>
 
             @if($search)
@@ -87,7 +91,7 @@
     </div>
 </div>
 
-<!-- Students Table -->
+<!-- Students Table: Displays all uploaded students -->
 <div class="card">
     <div class="card-body p-0">
 
@@ -102,6 +106,10 @@
                         <th>Phone</th>
                         <th>Course</th>
                         <th>Email Status</th>
+
+                        <!-- Shows failed email error reason if email sending fails -->
+                        <th>Failed Reason</th>
+
                         <th>SMS Status</th>
                         <th>Response</th>
                         <th>Actions</th>
@@ -112,15 +120,16 @@
                     @foreach($students as $student)
                         <tr>
 
-                            <!-- FIXED SERIAL NUMBER -->
+                            <!-- Serial number for each student row -->
                             <td>{{ $loop->iteration }}</td>
 
+                            <!-- Student basic details -->
                             <td>{{ $student->name }}</td>
                             <td>{{ $student->email }}</td>
                             <td>{{ $student->phone }}</td>
                             <td>{{ $student->course }}</td>
 
-                            <!-- Email Status -->
+                            <!-- Email Status: Shows Sent if email_status is 1, otherwise Pending -->
                             <td>
                                 @if($student->email_status == 1)
                                     <span class="badge bg-success">Sent</span>
@@ -129,7 +138,20 @@
                                 @endif
                             </td>
 
-                            <!-- SMS Status -->
+                            <!-- Failed Reason: Shows error message if notification_error exists -->
+                            <td>
+                                @if(!empty($student->notification_error))
+                                    <span class="badge bg-danger">Failed</span>
+                                    <br>
+                                    <small class="text-danger">
+                                        {{ \Illuminate\Support\Str::limit($student->notification_error, 45) }}
+                                    </small>
+                                @else
+                                    <span class="badge bg-success">No Error</span>
+                                @endif
+                            </td>
+
+                            <!-- SMS Status: Shows Sent if sms_status is 1, otherwise Pending -->
                             <td>
                                 @if($student->sms_status == 1)
                                     <span class="badge bg-success">Sent</span>
@@ -138,7 +160,7 @@
                                 @endif
                             </td>
 
-                            <!-- Response -->
+                            <!-- Response: Shows student response or No Reply -->
                             <td>
                                 @if($student->response)
                                     <span class="badge bg-info text-dark">{{ $student->response }}</span>
@@ -146,20 +168,22 @@
                                     <span class="badge bg-secondary">No Reply</span>
                                 @endif
                             </td>
-                            
 
-                            <!-- Actions -->
+                            <!-- Actions: Edit, View, and Delete student -->
                             <td>
                                 <div class="d-flex gap-1">
 
+                                    <!-- Edit Button -->
                                     <a href="/admin/students/{{ $student->id }}/edit" class="action-btn edit-btn">
-                                     <i class="fas fa-edit"></i>
-                                     </a>
+                                        <i class="fas fa-edit"></i>
+                                    </a>
 
+                                    <!-- View Button -->
                                     <a href="/admin/students/{{ $student->id }}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-eye"></i>
                                     </a>
 
+                                    <!-- Delete Button -->
                                     <form action="/student/{{ $student->id }}" method="POST"
                                         onsubmit="return confirm('Delete this student?')">
                                         @csrf
@@ -183,7 +207,7 @@
     </div>
 </div>
 
-<!-- No Data -->
+<!-- No Data Message: Shows when no students are available -->
 @if($students->count() == 0)
     <div class="card mt-3">
         <div class="card-body text-center py-5">

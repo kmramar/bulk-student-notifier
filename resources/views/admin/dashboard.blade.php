@@ -66,7 +66,7 @@
         </a>
 
         <a href="/" class="btn btn-success">
-            <i class="fas fa-upload"></i> Upload CSV
+            <i class="fas fa-upload"></i> Upload CSV / Excel
         </a>
 
         <a href="/admin/email" class="btn btn-warning">

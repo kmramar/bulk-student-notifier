@@ -21,8 +21,18 @@ class NotificationTemplateController extends Controller
 
     public function store(Request $request)
     {
-        NotificationTemplate::create($request->all());
-        return redirect()->route('admin.templates.index');
+       $validated = $request->validate([
+    'title' => 'required|string|max:255',
+    'subject' => 'required|string|max:255',
+    'message' => 'required|string',
+    'type' => 'required|in:email,sms',
+]);
+
+        NotificationTemplate::create($validated);
+
+        return redirect()
+            ->route('admin.templates.index')
+            ->with('success', 'Template created successfully');
     }
 
     public function edit($id)
@@ -33,14 +43,25 @@ class NotificationTemplateController extends Controller
 
     public function update(Request $request, $id)
     {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'subject' => 'required|string|max:255',
+            'message' => 'required|string',
+            'type' => 'required|in:email,sms',
+        ]);
+
         $template = NotificationTemplate::findOrFail($id);
-        $template->update($request->all());
-        return redirect()->route('admin.templates.index');
+        $template->update($validated);
+
+        return redirect()
+            ->route('admin.templates.index')
+            ->with('success', 'Template updated successfully');
     }
 
     public function destroy($id)
     {
-        NotificationTemplate::destroy($id);
-        return back();
+        NotificationTemplate::findOrFail($id)->delete();
+
+        return back()->with('success', 'Template deleted successfully');
     }
 }

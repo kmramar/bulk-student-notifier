@@ -42,22 +42,24 @@ body {
    ========================= */
 .admin-layout {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 /* =========================
    Sidebar
    ========================= */
 .admin-sidebar {
-    width: 260px;
+    width: 240px;
     background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
     color: white;
-    min-height: 100vh;
+    height: 100vh;
     padding: 0;
     position: fixed;
     left: 0;
     top: 0;
-    overflow-y: auto;
+    overflow-y: auto !important;
+    overflow-x: hidden;
     z-index: 1000;
     box-shadow: 2px 0 10px rgba(0,0,0,0.15);
 }
@@ -74,14 +76,14 @@ body {
     background: rgba(37, 99, 235, 0.15);
 }
 
-.admin-sidebar .logo i {
-    color: #60a5fa;
-    font-size: 20px;
+.admin-sidebar .logo {
+    padding: 18px 16px;
+    font-size: 18px;
 }
 
 .sidebar-menu {
     list-style: none;
-    padding: 16px 12px;
+    padding: 12px 10px;
     margin: 0;
 }
 
@@ -122,6 +124,23 @@ body {
 
 .sidebar-menu li a.active-menu i {
     color: white;
+}
+
+/* =========================
+   Sidebar Menu Headings
+   ========================= */
+.menu-heading {
+    padding: 20px 22px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-top: 8px;
+}
+
+.menu-heading:first-of-type {
+    margin-top: 0;
 }
 
 /* =========================
@@ -909,4 +928,13 @@ table td {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
+
+    .menu-heading {
+    padding: 16px 22px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #8fa3c8;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
 }

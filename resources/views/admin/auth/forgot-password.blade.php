@@ -1,65 +1,37 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Forgot Password</title>
+@extends('admin.layouts.auth')
 
-    <!-- Login / auth page CSS -->
-    <<link rel="stylesheet" href="{{ asset('css/admin-auth.css') }}">
+@section('content')
 
-     {{-- Google Fonts --}}
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-</head>
-<body>
+<div class="login-card">
 
-    <!-- Full forgot password page wrapper -->
-    <div class="login-wrapper">
-
-        <!-- Left side design section -->
-        <div class="login-left">
-            <div class="left-content">
-                <h2>Forgot Password?</h2>
-                <p>Reset your admin account password here.</p>
-                <p>Bulk Notifier Admin Panel</p>
-                <a href="/admin/login" class="left-btn">BACK TO LOGIN</a>
-            </div>
+    <div class="brand">
+        <div class="brand-icon">
+            <i class="fas fa-key"></i>
         </div>
-
-        <!-- Right side forgot password form -->
-        <div class="login-right">
-            <div class="login-box">
-                <h2>Reset Password</h2>
-
-                @if ($errors->any())
-                    <div class="error-message">
-                        {{ $errors->first() }}
-                    </div>
-                @endif
-
-                @if(session('error'))
-                    <div class="error-message">
-                        {{ session('error') }}
-                    </div>
-                @endif
-
-                @if(session('success'))
-                    <div class="success-message">
-                        {{ session('success') }}
-                    </div>
-                @endif
-
-                <!-- Forgot password form -->
-                <form action="/admin/forgot-password" method="POST">
-                    @csrf
-
-                    <input type="email" name="email" placeholder="Enter admin email" required>
-                    <input type="password" name="new_password" placeholder="Enter new password" required>
-                    <input type="password" name="confirm_password" placeholder="Confirm new password" required>
-
-                    <button type="submit">UPDATE PASSWORD</button>
-                </form>
-            </div>
-        </div>
+        <h1>Bulk Notifier</h1>
+        <p>Reset your admin password</p>
     </div>
 
-</body>
-</html>
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+
+    <form method="POST" action="{{ route('admin.send.otp') }}">
+        @csrf
+
+        <div class="form-group">
+            <label>Email</label>
+            <div class="input-wrap">
+                <i class="fas fa-envelope"></i>
+                <input type="email" name="email" placeholder="Enter admin email" required>
+            </div>
+        </div>
+
+        <button class="login-btn">Send OTP →</button>
+    </form>
+
+    <a class="forgot" href="{{ route('admin.login') }}">Back to Login</a>
+
+</div>
+
+@endsection
